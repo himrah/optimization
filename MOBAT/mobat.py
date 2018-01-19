@@ -31,10 +31,10 @@ class Bats:
 		self.velocity = []
 		self.G = nx.Graph()
 		self.bats = []
-		self.file_name = 'kara.txt'
-		self.number_of_bats = 10
+		self.file_name = 'dolphin.txt'
+		self.number_of_bats = 50
 		self.modularity = 0
-		self.iteration = 2
+		self.iteration = 10
 		self.R=0.5
 		self.Z1d = 0
 		self.Z2d = 0
@@ -122,8 +122,8 @@ class Bats:
 		if better == 0:
 			for i in graph:
 				self.pbest[j]=graph.node[i]['pos']
-				j+=1					
-		self.G = graph.copy()		
+				j+=1
+		#self.G = graph.copy()		
 
 
 	def updatepos(self,graph):    #simple function to update position with base on thier neighbors frequency
@@ -185,7 +185,7 @@ class Bats:
 		
 	def fitness(self,graph):
 		m=graph.number_of_edges()
-		l=1/(2*m)
+		l=1.0/(2.0*m)
 		temp=0
 		for j in graph:	
 			for i in graph:
@@ -218,7 +218,7 @@ class Bats:
 						#print(temp)
 			v1=(graph.subgraph(nd).number_of_edges())*2 #  this is just like L(v1,v1) function
 			v2=(graph.subgraph(nd).number_of_nodes())
-			md+=(v1)/v2
+			md+=float(v1)/float(v2)
 		
 		
 		n=graph.number_of_nodes()
@@ -248,7 +248,7 @@ class Bats:
 						#print(temp)
 			#v1=(graph.subgraph(nd).number_of_edges())*2 #  this is just like L(v1,v1) function
 			v2=(graph.subgraph(nd).number_of_nodes())
-			md+=(temp)/v2
+			md+=float((temp))/float(v2)
 			#print(md)
 		#print(round(md,2))
 		return round(md,3)
@@ -274,7 +274,7 @@ class Bats:
 						#print(temp)
 			v1=(graph.subgraph(nd).number_of_edges())*2 #  this is just like L(v1,v1) function
 			#v2=(graph.subgraph(nd).number_of_nodes())
-			md+=(v1)/v2
+			md+=float(v1)/float(v2)
 			#print(md)
 		#print(round(md,2))
 		return round(md,3)
@@ -348,6 +348,7 @@ class Bats:
 				graph
 				nx.set_node_attributes(graph,'n_distance',child)
 
+		self.G = graph.copy()
 		#if max()
 
 		#if max(self.KKM(new_sol)-self.zstr1,self.RC(new_sol)-self.zstr2)>max(self.KKM(old_sol)-self.zstr1,self.RC(old_sol)-self.zstr2):
@@ -422,13 +423,14 @@ class Bats:
 		self.Z1d=self.KKM(self.G)
 		self.Z2d=self.RC(self.G)
 
-	
 
 	def draw(self):	
 
 		pf=list((set(self.bats)))
 		M = [self.KKM(i) for i in pf]
 		N = [self.RC(i) for i in pf]
+
+		F = [self.fitness(i) for i in pf]
 
 		p1 = sorted(M)
 		p1_min = min(M)
@@ -438,23 +440,38 @@ class Bats:
 		p2_min = min(N)
 		p2_max = max(N)
 
-		print(p1)
-		print(p2)
+		#print(p1)
+		#print(p2)
 		h=[]
 		l=[]
 
+		
+
 		for i in range(len(M)):
-			h.append(float((p1[i]-p1_min))/float((p1_max - p1_min)))
+			h.append(round(float((p1[i]-p1_min))/float((p1_max - p1_min)),5))
 
-			l.append(float((p2[i]-p2_min))/float((p2_max - p2_min)))
+			l.append(round(float((p2[i]-p2_min))/float((p2_max - p2_min)),5))
 
-		plt.plot(h, l,'g^')
-		print(h)
-		print(l)
+		fig, ax = plt.subplots()
+
+		plt.figure(1)
+
+		ax.scatter(l, h)
+		for i, txt in enumerate(F):
+		    ax.annotate(txt, (l[i],h[i]))
+		#plt.show()    
+
+		#plt.plot(h, l,'ro')
+		#print(h)
+		#print(l)
+		plt.figure(2)
+		nx.draw(self.G,node_color=[self.G.node[i]['pos'] for i in self.G])
+
 		plt.show()
 
 
 	def optimize(self):
+
 		self.__init__()
 		startTime = time.time()
 		self.Input_Graph()
@@ -491,21 +508,23 @@ class Bats:
 
 				self.update_neighborhood_solution(t1,p)
 				self.update_reference_point()
-				self.update_pbest(p)
+				self.update_pbest(t1)
 
 				#print(p.node)
-
+			print(len(set([self.G.node[i]['pos'] for i in self.G])))
+			#print(len(set(self.pbest)))
 		
 		print("\n\n**********************************************************")	
 		#print()
 		
 		print('\nThe script take {0} second '.format(np.round((time.time() - startTime),2)))
 		#print("\nModularity is : ",fmax)
-		#print("\nNumber of Communites : ",len(set(pos)))
-		#print("\nGlobal Best Position : ",pos)
-		nx.draw(self.G,node_color=[self.G.node[i]['pos'] for i in self.G])
+		print("\nFitness : ",self.fitness(self.G))
+		print("\nNumber of Communites : ",len(set([self.G.node[i]['pos'] for i in self.G])))
+		print("\nGlobal Best Position : ",[self.G.node[i]['pos'] for i in self.G])
+		#nx.draw(self.G,node_color=[self.G.node[i]['pos'] for i in self.G])
 		#nx.draw(self.G, node_color=pos)
-		plt.show()
+		#plt.show()
 
 		self.draw()
 if __name__=='__main__':
