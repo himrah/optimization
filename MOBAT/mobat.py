@@ -4,23 +4,15 @@ from collections import Counter, defaultdict
 import time
 #from sklearn import metrics
 #from sklearn.metrics import normalized_mutual_info_score as NMI
-import operator
 from operator import itemgetter
 import matplotlib
 #matplotlib.use("Qt4Agg")
 import matplotlib.pyplot as plt
 import random
 
-class Bats:
+class Bats:	
 	def __init__(self):
-		self.bats_fitness_value=[]
-		self.bats_fitness_values={}
-		self.zReference_point = 0
-		self.NS=[]
-		#self.best_positions = []
-		#self.best_p = []
-		self.ns_size=0
-		self.n_distance=[]
+		self.ns_size=30
 		self.zstr1=0
 		self.zstr2=0
 		self.gbest=[]
@@ -35,10 +27,8 @@ class Bats:
 		self.number_of_bats = 50
 		self.modularity = 0
 		self.iteration = 10
-		self.R=0.5
 		self.Z1d = 0
 		self.Z2d = 0
-		self.A=0.5
 
 	def Input_Graph(self):
 		temp=open(self.file_name,'r').read().split('\n')
@@ -285,10 +275,19 @@ class Bats:
 	def Euclidean_distance(self):
 		#n_distance=[]
 		i=0
+
+		t=[]
+		for g in self.bats:
+			t.append(g.copy())
+
+
+		#dic={}
 		for graph in self.bats:
-			temp=[]
-			for g in self.bats:
-				temp.append(g.copy())
+			#temp=[g.copy() for g in self.bats]
+			#temp=[]
+			"""for g in self.bats:
+				temp.append(g.copy())"""
+			temp=list(t);
 			dic={}	
 			del(temp[i])	
 			#remain=temp.remove(graph)
@@ -311,9 +310,9 @@ class Bats:
 			i+=1	
 
 
-	def scalar_func(fun,point,weight):
+	def scalar_func(self,fun,point,weight):
 		max_fun=-1
-		for i in range(1,3):
+		for i in range(2):
 			diff = abs(fun[i]-point[i])
 			if weight[i] is 0:
 				feval = 0.00001 * diff
@@ -339,7 +338,7 @@ class Bats:
 			#weight = []
 			f1 = self.scalar_func(point,fun,weight)
 
-			fun = [self.KKM(child),self.RC(RC)]
+			fun = [self.KKM(child),self.RC(child)]
 			weight = child.node[1]['weight']
 
 			f2 = self.scalar_func(point,fun,weight)
@@ -427,16 +426,18 @@ class Bats:
 	def draw(self):	
 
 		pf=list((set(self.bats)))
+		
 		M = [self.KKM(i) for i in pf]
 		N = [self.RC(i) for i in pf]
-
 		F = [self.fitness(i) for i in pf]
-
-		p1 = sorted(M)
+		
+		p1=M
+		#p1 = sorted(M)
 		p1_min = min(M)
 		p1_max = max(M)
 
-		p2 = sorted(N)
+		p2=N
+		#p2 = sorted(N)
 		p2_min = min(N)
 		p2_max = max(N)
 
@@ -456,12 +457,13 @@ class Bats:
 
 		plt.figure(1)
 
-		ax.scatter(l, h)
+		ax.scatter(h, l)
 		for i, txt in enumerate(F):
-		    ax.annotate(txt, (l[i],h[i]))
+		    ax.annotate(txt, (h[i],l[i]))
 		#plt.show()    
 
 		#plt.plot(h, l,'ro')
+		#plt.show()
 		#print(h)
 		#print(l)
 		plt.figure(2)
@@ -511,14 +513,13 @@ class Bats:
 				self.update_pbest(t1)
 
 				#print(p.node)
+			print(self.fitness(self.G))	
 			print(len(set([self.G.node[i]['pos'] for i in self.G])))
 			#print(len(set(self.pbest)))
 		
 		print("\n\n**********************************************************")	
-		#print()
 		
 		print('\nThe script take {0} second '.format(np.round((time.time() - startTime),2)))
-		#print("\nModularity is : ",fmax)
 		print("\nFitness : ",self.fitness(self.G))
 		print("\nNumber of Communites : ",len(set([self.G.node[i]['pos'] for i in self.G])))
 		print("\nGlobal Best Position : ",[self.G.node[i]['pos'] for i in self.G])
