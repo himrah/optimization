@@ -12,7 +12,7 @@ import random
 
 class Bats:	
 	def __init__(self):
-		self.ns_size=4
+		self.ns_size=40
 		self.zstr1=0
 		self.zstr2=0
 		self.gbest=[]
@@ -26,9 +26,9 @@ class Bats:
 		self.G = nx.Graph()
 		self.bats = []
 		self.file_name = 'kara.txt'
-		self.number_of_bats = 10
+		self.number_of_bats = 100
 		self.modularity = 0
-		self.iteration = 20
+		self.iteration = 10
 		self.Z1d = 0
 		self.Z2d = 0
 
@@ -394,10 +394,11 @@ class Bats:
 		for i in range(len(self.bats)):
 			if self.bats[i].node==neighbor.node:
 				#print(child.node)
-				print(len(self.bats[i].node[1]['n_distance']))
-				#nx.set_node_attributes(self.bats[i],'n_distance',child)
-				pass
-			i+=1	
+				#print(len(self.bats[i].node[1]['n_distance']))
+				#self.bats[i].node[1]
+				nx.set_node_attributes(self.bats[i],'n_distance',[child] * self.ns_size) 
+				
+			i+=1
 
 	def update_neighborhood_solution(self,graph,child):
 
@@ -405,6 +406,7 @@ class Bats:
 
 		ns=nx.get_node_attributes(graph,'n_distance')[1]
 		#print(ns)
+		
 		for i in ns:
 
 			#print(i)
@@ -427,6 +429,7 @@ class Bats:
 				self.UpdateInPop(i,child)
 				#nx.set_node_attributes(self.bats[i],'n_distance',child) #chaining in whole pop.
 
+		
 		self.G = graph.copy()
 		#if max()
 
@@ -572,7 +575,7 @@ class Bats:
 				gbst=nbrs[np.random.randint(len(nbrs))]
 				#print(p.node[1])
 				#gbst=np.random.choice(self.neigbhorhood_set)
-
+				
 				self.updatevelocity(p,gbst)
 				#print('af',self.best_positions)
 				
@@ -586,12 +589,14 @@ class Bats:
 				#print(ns)
 
 				self.update_neighborhood_solution(p,t1)
+				
 				self.update_reference_point()
 				self.update_pbest(t1)
 
 				#print(p.node)
 			print(self.fitness(self.G))
 			print(len(set([self.G.node[i]['pos'] for i in self.G])))
+			#print("\nNumber of Communites : ",len(set([self.G.node[i]['pos'] for i in self.G])))
 			#print(len(set(self.pbest)))
 		
 		print("\n\n**********************************************************")	
