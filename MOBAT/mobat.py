@@ -5,10 +5,10 @@ import time
 #from sklearn import metrics
 #from sklearn.metrics import normalized_mutual_info_score as NMI
 from operator import itemgetter
-import matplotlib
+#import matplotlib
 #matplotlib.use("Qt4Agg")
-import matplotlib.pyplot as plt
 import random
+import matplotlib.pyplot as plt
 
 class Bats:	
 	def __init__(self):
@@ -25,7 +25,7 @@ class Bats:
 		self.velocity = []
 		self.G = nx.Graph()
 		self.bats = []
-		self.file_name = 'kara.txt'
+		self.file_name = 'dolphin.txt'
 		self.number_of_bats = 100
 		self.modularity = 0
 		self.iteration = 10
@@ -69,7 +69,7 @@ class Bats:
 			rs.append(self.KKM(i))
 		return min(rs)
 
-	def z_reference(self):
+	def z_reference(self):# ideal point 
 		self.zstr1=self.best_kkm()
 		self.zstr2=self.best_rc()
 
@@ -82,21 +82,24 @@ class Bats:
 			self.zstr2=self.Z2d		
 
 
-	def update_pbest(self,graph):
+	def update_pbest(self,graph,child):
 		nob=2
 		sum=0
 		counter=0
 		better=1
 		pbest_sol=graph.copy()
-		j=0
-		for i in pbest_sol.node:
-			pbest_sol.node[i]['pos']=self.pbest[j]
-			j+=1
+		#j=0
+
+		#for i in pbest_sol.node:
+		#	pbest_sol.node[i]['pos']=self.pbest[j]
+		#	j+=1
+
+		#nx.set_node_attributes(pbest_sol,'pos',nx.get_node_attributes(graph,'pbest').values()[1])
 
 		for i in range(nob):
-			if(self.KKM(graph)<=self.KKM(pbest_sol)):
+			if(self.KKM(child)<=self.KKM(graph)):
 				sum+=1
-			elif(self.KKM(graph)<self.KKM(pbest_sol)):
+			elif(self.KKM(child)<self.KKM(graph)):
 				counter+=1
 
 		if sum==nob:
@@ -105,16 +108,18 @@ class Bats:
 			if sum == 0:
 				better = 1
 			elif counter == 1:
-				t1 = ((self.KKM(graph)*(graph.node[graph.nodes()[0]]['weight'][0]))+(self.RC(graph)*(graph.node[graph.nodes()[0]]['weight'][1])))
-				t2 = ((self.KKM(pbest_sol)*(pbest_sol.node[pbest_sol.nodes()[0]]['weight'][0]))+(self.RC(pbest_sol)*(pbest_sol.node[pbest_sol.nodes()[0]]['weight'][1])))
+				t1 = ((self.KKM(child)*(child.node[child.nodes()[0]]['weight'][0]))+(self.RC(child)*(child.node[child.nodes()[0]]['weight'][1])))
+				t2 = ((self.KKM(graph)*(graph.node[graph.nodes()[0]]['weight'][0]))+(self.RC(graph)*(graph.node[graph.nodes()[0]]['weight'][1])))
 				if t1<t2:
 					better = 0
 
 		j=0
 		if better == 0:
-			for i in graph:
-				self.pbest[j]=graph.node[i]['pos']
-				j+=1
+			nx.set_node_attributes(graph,'pbest',nx.get_node_attributes(child,'pbest').values()[1])
+			#for i in graph:
+			#	self.pbest[j]=graph.node[i]['pos']
+			#	j+=1
+
 		#self.G = graph.copy()		
 
 
@@ -163,7 +168,7 @@ class Bats:
 				j+=1"""
 
 
-	def updatevelocity(self,graph,gbest):
+	def updatevelocity(self,graph,gbest):#changing
 		c1=c2=1.494
 		w=1
 		#w=self.iweight(k)
@@ -179,7 +184,7 @@ class Bats:
 
 		#print(gbest)
 		for i in graph:
-			v1.append(int((self.pbest[j]==graph.node[i]['pos']) and '0' or '1'))
+			v1.append(int((nx.get_node_attributes(graph,'pbest').values()[0][j]==graph.node[i]['pos']) and '0' or '1'))
 			v2.append(int((gbest.node[i]['pos']==graph.node[i]['pos']) and '0' or '1'))
 			r1=float(np.round(np.random.uniform(0.1,0.9),3))
 			r2=float(np.round(np.random.uniform(0.1,0.9),3))
@@ -308,7 +313,7 @@ class Bats:
 						temp+=1       #////////// this is L(v1-v1')
 						#print(temp)
 			v1=(graph.subgraph(nd).number_of_edges())*2 #  this is just like L(v1,v1) function
-			#v2=(graph.subgraph(nd).number_of_nodes())
+			v2=(graph.subgraph(nd).number_of_nodes())
 			md+=float(v1)/float(v2)
 			#print(md)
 		#print(round(md,2))
@@ -393,12 +398,20 @@ class Bats:
 		#print(i)
 		for i in range(len(self.bats)):
 			if self.bats[i].node==neighbor.node:
+				
 				#print(child.node)
 				#print(len(self.bats[i].node[1]['n_distance']))
 				#self.bats[i].node[1]
-				nx.set_node_attributes(self.bats[i],'n_distance',[child] * self.ns_size) 
+
+				#in this child is update to whole bats's neighburhood (n_distance)
+				child_pos=nx.get_node_attributes(child,'pos')
+				nx.set_node_attributes(self.bats[i],'pos',child_pos) 
+				
+
+				#nx.set_node_attributes(self.bats[i],'n_distance',child.node[1]['n_distance'])
 				
 			i+=1
+
 
 	def update_neighborhood_solution(self,graph,child):
 
@@ -463,14 +476,10 @@ class Bats:
 		return round(md,2)	
 
 
+
 	def pbest_init(self):
 		for i in self.bats:
-			t=self.fitness(i)
-			if(t>self.fitness_value):
-				self.fitness_value=t
-				self.pbest = [i.node[j]['pos'] for j in i]
-
-
+			nx.set_node_attributes(i,'pbest',nx.get_node_attributes(i,'pos').values())
 	
 	def turbulance_operation(self,graph):
 		#self.pm=.15
@@ -484,9 +493,9 @@ class Bats:
 		self.G=temp_graph.copy()
 
 
-	def Z1dZ2d(self):
-		self.Z1d=self.KKM(self.G)
-		self.Z2d=self.RC(self.G)
+	def Z1dZ2d(self,child):
+		self.Z1d=self.KKM(child)
+		self.Z2d=self.RC(child)
 
 
 	def draw(self):	
@@ -583,7 +592,7 @@ class Bats:
 				
 				#y=self.rearrange(t1)
 				self.turbulance_operation(t1)
-				self.Z1dZ2d()
+				self.Z1dZ2d(t1)
 
 				#ns=nx.get_node_attributes(p,'n_distance')[1]
 				#print(ns)
@@ -591,7 +600,7 @@ class Bats:
 				self.update_neighborhood_solution(p,t1)
 				
 				self.update_reference_point()
-				self.update_pbest(t1)
+				self.update_pbest(p,t1)
 
 				#print(p.node)
 			print(self.fitness(self.G))
