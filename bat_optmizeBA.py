@@ -79,7 +79,7 @@ class Bats:
 			j+=1
 		return graph.copy()
 
-	def updatevelocity(self,graph):
+	def updatevelocity(self,graph,gbest):
 		fmin=0
 		fmax=1
 		v1=[]
@@ -91,6 +91,7 @@ class Bats:
 		for i in graph:
 			beta=round(np.random.uniform(0,1),2)
 			f=fmin+(fmax-fmin)*beta
+			
 			v1.append(int((p[j]==graph.node[i]['pos']) and '0' or '1'))
 			#bf=self.best_positions[j]
 			#print('bf',self.best_positions[j])
