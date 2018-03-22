@@ -59,7 +59,7 @@ class Bats:
 	def best_rc(self):
 		rs=[]
 		for i in self.bats:
-			rs.append(self.KKM(i))
+			rs.append(self.RC(i))
 		return min(rs)
 
 	def z_reference(self):# ideal point 
@@ -100,8 +100,9 @@ class Bats:
 			nx.set_node_attributes(graph,'pbest',nx.get_node_attributes(child,'pbest').values()[1])
 
 
-	def updatepos(self,graph):    #simple function to update position with base on thier neighbors frequency
+	def updatepos(self,g):    #simple function to update position with base on thier neighbors frequency
 		j=0
+		graph=g.copy()
 		for i in graph:
 			n=[]
 			if(self.velocity[j]):
@@ -119,7 +120,7 @@ class Bats:
 						p=np.random.choice(n)
 						graph.node[i]['pos']=p
 			j+=1
-		self.G = graph
+		#self.G = graph
 		return graph
 
 
@@ -264,7 +265,7 @@ class Bats:
 			i+=1
 
 
-	def scalar_func(self,fun,point,weight):
+	def scalar_func(self,point,fun,weight):
 		max_fun=-1
 		for i in range(2):
 			diff = abs(fun[i]-point[i])
@@ -286,14 +287,14 @@ class Bats:
 			i+=1
 
 
-	def update_neighborhood_solution(self,graph,child):
-		ns=nx.get_node_attributes(graph,'n_distance')[1]
+	def update_neighborhood_solution(self,ns,child):
+		#ns=nx.get_node_attributes(graph,'n_distance')[1]
 		for i in ns:
-			point = [self.Z1d,self.Z2d]
+			#point = [self.Z1d,self.Z2d]
+			point = [self.zstr1,self.zstr2]
 			fun = [self.KKM(i),self.RC(i)]
 			weight = nx.get_node_attributes(i,'weight')[1]
 			f1 = self.scalar_func(point,fun,weight)
-			
 			fun = [self.KKM(child),self.RC(child)]
 			#weight = child.node[1]['weight']
 			f2 = self.scalar_func(point,fun,weight)
@@ -331,7 +332,8 @@ class Bats:
 	
 	def turbulance_operation(self,graph):
 		temp_graph=graph.copy()
-		r=np.random.choice([0,1])
+		#r=round(np.random.random(),2)
+		r=round(np.random.uniform(0,1),2)
 		for i in graph:
 			if(r<self.pm):
 				for j in graph.neighbors(i):
@@ -369,24 +371,25 @@ class Bats:
 		nx.draw(self.G,node_color=[self.G.node[i]['pos'] for i in self.G])
 		plt.show()
 
-	def eq_4(self,graph,gbest):
-		new_graph=graph           
+	def eq_4(self,g,gbest):
+		#new_graph=graph
 		av=np.mean(self.A)
+		graph=g.copy()
 		av1=round(av,2)
-		for i in new_graph:
+		for i in graph:
 			e=round(np.random.uniform(0,1),2)
 			if(e>av1):
                 
 				#new_graph.node[i]['pos']=self.best_positions[k]+np.mean(self.A)*e
 				
-				neighbor=new_graph.neighbors(i)
+				neighbor=graph.neighbors(i)
 				temp=np.array(list(neighbor))
 				#new_graph[i]['pos']=self.best_positions[k]+np.random.choice(neighbor)
-				new_graph.node[i]['pos']=np.random.choice(temp)
+				graph.node[i]['pos']=np.random.choice(temp)
 			else:
-				new_graph.node[i]['pos']=gbest.node[i]['pos']
+				graph.node[i]['pos']=gbest.node[i]['pos']
 #			if(c>np.mean(self.A))
-		return new_graph
+		return graph
 
 	def increase_r(self,itr):
 		#if(itr==0):
@@ -427,30 +430,38 @@ class Bats:
 			for p in self.bats:
 				nbrs=nx.get_node_attributes(p,'n_distance')[1]
 				gbst=nbrs[np.random.randint(len(nbrs))]
+
 				#print("gbest ",gbst)
+				#print("p",p.node[1]['pos'])
 				self.updatevelocity(p,gbst)
 				child=self.updatepos(p)
-				
-
+				#print("c",child.node[1]['pos'])
+				#if(child==p):
+				#	print True
 				if(round(np.random.uniform(0,1),2)>self.R):
 					child=self.eq_4(p,gbst) #equation 9 in your docx paper
 
-				self.turbulance_operation(child)
+				if(i<self.iteration*self.pm):
+					self.turbulance_operation(child)
+				
 				self.Z1dZ2d(child)
 				#self.update_neighborhood_solution(p,child)
 
 
 				rd=round(np.random.uniform(0,1),2)
 
-				fi = self.fitness(p)
-				fnew=self.fitness(child)
+				fi = round(self.fitness(p),3)
+				fnew = round(self.fitness(child),3)
+
+				#print(rd,fi,fnew)
 
 				if(rd<self.A and fi<fnew):
 					p=child	# accept new solution in full population			
 					self.increase_r(i) # increase pulse emission rate
 					self.decrease_a() # decrease loudness
 					
-				self.update_neighborhood_solution(p,child)
+				#ns=nx.get_node_attributes(p,'n_distance')[1]
+				self.update_neighborhood_solution(nbrs,child)
 				self.update_reference_point()
 				self.update_pbest(p,child)
 
