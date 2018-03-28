@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class Bats:	
 	def __init__(self):
-		self.ns_size=40
+		self.ns_size=10
 		self.zstr1=0
 		self.zstr2=0
 		self.gbest_mod=0
@@ -19,6 +19,7 @@ class Bats:
 		self.bats = []
 		self.file_name = 'kara.txt'
 		self.number_of_bats = 20
+		self.nbrs=[]
 		self.modularity = 0
 		self.iteration = 10
 		self.Z1d = 0
@@ -248,20 +249,23 @@ class Bats:
 	def Euclidean_distance(self):
 		i=0
 		t=[]
+		val=1
 		for graph in self.bats:
-			dic={}	
+			dic={}
 			f=self.bats[i]
+			
 			for g in self.bats:
 				if g != f:
 					A = graph.node[graph.nodes()[0]]['weight'][0]
 					B = graph.node[graph.nodes()[0]]['weight'][1]
 					a = g.node[g.nodes()[0]]['weight'][0]
 					b = g.node[g.nodes()[0]]['weight'][1]			
-					ed = round(np.sqrt(np.power((a-A),2) + np.power((b-B),3)),1)
-					dic.update({g:ed})
+					ed = round(np.sqrt(np.power((a-A),2) + np.power((b-B),2)),1)
+					dic.update({g:ed})			
 			sorted_dic = sorted(dic.items(), key=itemgetter(1))
 			neigbhorhood_set=[s[0] for s in sorted_dic[:self.ns_size]]
-			nx.set_node_attributes(self.bats[i],'n_distance',neigbhorhood_set)
+			self.nbrs.append(tuple(neigbhorhood_set))
+			#nx.set_node_attributes(self.bats[i],'n_distance',neigbhorhood_set)
 			i+=1
 
 
@@ -283,20 +287,17 @@ class Bats:
 		for i in range(len(self.bats)):
 			if self.bats[i].node==neighbor.node:
 				child_pos=nx.get_node_attributes(child,'pos')
-				nx.set_node_attributes(self.bats[i],'pos',child_pos) 
+				nx.set_node_attributes(self.bats[i],'pos',child_pos)
 			i+=1
 
 
 	def update_neighborhood_solution(self,ns,child):
-		#ns=nx.get_node_attributes(graph,'n_distance')[1]
 		for i in ns:
-			#point = [self.Z1d,self.Z2d]
 			point = [self.zstr1,self.zstr2]
 			fun = [self.KKM(i),self.RC(i)]
 			weight = nx.get_node_attributes(i,'weight')[1]
 			f1 = self.scalar_func(point,fun,weight)
 			fun = [self.KKM(child),self.RC(child)]
-			#weight = child.node[1]['weight']
 			f2 = self.scalar_func(point,fun,weight)
 			if f1>f2:
 				self.UpdateInPop(i,child)
@@ -429,6 +430,7 @@ class Bats:
 			inc=0
 			for p in self.bats:
 				nbrs=nx.get_node_attributes(p,'n_distance')[1]
+				#print(nbrs)
 				gbst=nbrs[np.random.randint(len(nbrs))]
 
 				#print("gbest ",gbst)
