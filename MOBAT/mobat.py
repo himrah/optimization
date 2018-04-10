@@ -135,7 +135,7 @@ class Bats:
 		for i in graph:
 			beta=round(np.random.uniform(0,1),2)
 			f=fmin+(fmax-fmin)*beta
-			v1.append(int((gbest.node[i]['pos']==graph.node[i]['pos']) and '0' or '1'))
+			v1.append(int((self.bats[gbest].node[i]['pos']==graph.node[i]['pos']) and '0' or '1'))
 			v2.append(round((self.velocity[j]+v1[j]*f),2))
 			v3.append(round(float(1/round(1+round(float(np.exp(-v2[j])),2),2)),2))
 			self.velocity[j]=int((round(np.random.uniform(0,1),2)<v3[j]) and '1' or '0')
@@ -248,12 +248,10 @@ class Bats:
 
 	def Euclidean_distance(self):
 		i=0
-		t=[]
-		val=1
+		index=0
 		for graph in self.bats:
 			dic={}
 			f=self.bats[i]
-			
 			for g in self.bats:
 				if g != f:
 					A = graph.node[graph.nodes()[0]]['weight'][0]
@@ -261,7 +259,8 @@ class Bats:
 					a = g.node[g.nodes()[0]]['weight'][0]
 					b = g.node[g.nodes()[0]]['weight'][1]			
 					ed = round(np.sqrt(np.power((a-A),2) + np.power((b-B),2)),1)
-					dic.update({g:ed})			
+					dic.update({index:ed})
+				index+=1		
 			sorted_dic = sorted(dic.items(), key=itemgetter(1))
 			neigbhorhood_set=[s[0] for s in sorted_dic[:self.ns_size]]
 			self.nbrs.append(tuple(neigbhorhood_set))
@@ -284,18 +283,15 @@ class Bats:
 
 
 	def UpdateInPop(self,neighbor,child):
-		for i in range(len(self.bats)):
-			if self.bats[i].node==neighbor.node:
-				child_pos=nx.get_node_attributes(child,'pos')
-				nx.set_node_attributes(self.bats[i],'pos',child_pos)
-			i+=1
+		child_pos=nx.get_node_attributes(child,'pos')
+		nx.set_node_attributes(self.bats[neighbor],'pos',child_pos)
 
 
 	def update_neighborhood_solution(self,ns,child):
 		for i in ns:
 			point = [self.zstr1,self.zstr2]
-			fun = [self.KKM(i),self.RC(i)]
-			weight = nx.get_node_attributes(i,'weight')[1]
+			fun = [self.KKM(self.bats[i]),self.RC(self.bats[i])]
+			weight = nx.get_node_attributes(self.bats[i],'weight')[1]
 			f1 = self.scalar_func(point,fun,weight)
 			fun = [self.KKM(child),self.RC(child)]
 			f2 = self.scalar_func(point,fun,weight)
@@ -388,7 +384,7 @@ class Bats:
 				#new_graph[i]['pos']=self.best_positions[k]+np.random.choice(neighbor)
 				graph.node[i]['pos']=np.random.choice(temp)
 			else:
-				graph.node[i]['pos']=gbest.node[i]['pos']
+				graph.node[i]['pos']=self.bats[gbest].node[i]['pos']
 #			if(c>np.mean(self.A))
 		return graph
 
@@ -427,11 +423,13 @@ class Bats:
 		
 		for i in range(self.iteration):
 			print("iteration : ",(i+1))
-			inc=0
+			index=0
 			for p in self.bats:
-				nbrs=nx.get_node_attributes(p,'n_distance')[1]
+				#nbrs=nx.get_node_attributes(p,'n_distance')[1]
+				nbrs = self.nbrs[index]
 				#print(nbrs)
-				gbst=nbrs[np.random.randint(len(nbrs))]
+				#gbst=nbrs[np.random.randint(len(nbrs))]
+				gbst = np.random.choice(nbrs)
 
 				#print("gbest ",gbst)
 				#print("p",p.node[1]['pos'])
@@ -458,7 +456,7 @@ class Bats:
 				#print(rd,fi,fnew)
 
 				if(rd<self.A and fi<fnew):
-					p=child	# accept new solution in full population			
+					p=child	# accept new solution in full population
 					self.increase_r(i) # increase pulse emission rate
 					self.decrease_a() # decrease loudness
 					
