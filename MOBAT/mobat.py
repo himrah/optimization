@@ -6,26 +6,23 @@ from operator import itemgetter
 import random
 import matplotlib.pyplot as plt
 
-class Bats:	
+class Bats:
 	def __init__(self):
-		self.ns_size=10
-		self.zstr1=0
-		self.zstr2=0
-		self.gbest_mod=0
+		self.ns_size=40
 		self.pm = 0.15  #probability mutation
-		self.fitness_value=-1
 		self.velocity = []
 		self.G = nx.Graph()
 		self.bats = []
-		self.file_name = 'kara.txt'
-		self.number_of_bats = 20
+		self.file_name = 'dolphin.txt'
+		self.number_of_bats = 100
 		self.nbrs=[]
 		self.modularity = 0
 		self.iteration = 10
 		self.Z1d = 0
 		self.Z2d = 0
-		self.R=0.5
-		self.A=0.5
+		self.R = self.A = [0.5]*self.number_of_bats
+		#self.R=0.5
+		#self.A=0.5
 
 
 	def Input_Graph(self):
@@ -53,15 +50,32 @@ class Bats:
 
 	def best_kkm(self):
 		rs=[]
+		temp={}
+		dic={}
+		index=0
 		for i in self.bats:
-			rs.append(self.KKM(i))
-		return min(rs)
+			temp.update({index:self.KKM(i)})
+			index+=1
+			#rs.append(self.KKM(i))
+
+		rs = min(temp.items(),key=itemgetter(1))
+
+		dic.update({"index":rs[0],"KKM":rs[1],"RC":self.RC(self.bats[rs[0]])})
+		
+		return dic
+		#return min(rs)
 
 	def best_rc(self):
 		rs=[]
+		temp={}
+		dic={}
+		index=0
 		for i in self.bats:
-			rs.append(self.RC(i))
-		return min(rs)
+			temp.update({index:self.RC(i)})
+			index+=1
+		rs = min(temp.items(),key=itemgetter(1))
+		dic.update({"index":rs[0],"RC":rs[1],"KKM":self.KKM(self.bats[rs[0]])})		
+		return dic
 
 	def z_reference(self):# ideal point 
 		self.zstr1=self.best_kkm()
@@ -69,10 +83,19 @@ class Bats:
 
 
 	def update_reference_point(self):
-		if self.Z1d<self.zstr1:
-			self.zstr1=self.Z1d
-		if self.Z2d<self.zstr2:
-			self.zstr2=self.Z2d		
+
+		if self.Z1d < self.zstr1['KKM']:
+			self.zstr1['KKM'] = self.Z1d
+			self.zstr1['RC'] = self.Z2d
+
+		if self.Z2d < self.zstr2['RC']:
+			self.zstr2['RC'] = self.Z2d
+			self.zstr2['KKM'] = self.Z1d
+
+
+	def Z1dZ2d(self,child):
+		self.Z1d=(self.KKM(child))
+		self.Z2d=(self.RC(child))
 
 
 	def update_pbest(self,graph,child):
@@ -80,7 +103,6 @@ class Bats:
 		sum=0
 		counter=0
 		better=1
-		pbest_sol=graph.copy()
 		for i in range(nob):
 			if(self.KKM(child)<=self.KKM(graph)):
 				sum+=1
@@ -132,6 +154,7 @@ class Bats:
 		v2=[]
 		v3=[]
 		j=0
+		
 		for i in graph:
 			beta=round(np.random.uniform(0,1),2)
 			f=fmin+(fmax-fmin)*beta
@@ -248,23 +271,22 @@ class Bats:
 
 	def Euclidean_distance(self):
 		i=0
-		index=0
 		for graph in self.bats:
 			dic={}
 			f=self.bats[i]
+			index=0
 			for g in self.bats:
 				if g != f:
 					A = graph.node[graph.nodes()[0]]['weight'][0]
 					B = graph.node[graph.nodes()[0]]['weight'][1]
 					a = g.node[g.nodes()[0]]['weight'][0]
 					b = g.node[g.nodes()[0]]['weight'][1]			
-					ed = round(np.sqrt(np.power((a-A),2) + np.power((b-B),2)),1)
+					ed = round(np.sqrt(np.power((a-A),2) + np.power((b-B),2)),3)
 					dic.update({index:ed})
 				index+=1		
 			sorted_dic = sorted(dic.items(), key=itemgetter(1))
 			neigbhorhood_set=[s[0] for s in sorted_dic[:self.ns_size]]
 			self.nbrs.append(tuple(neigbhorhood_set))
-			#nx.set_node_attributes(self.bats[i],'n_distance',neigbhorhood_set)
 			i+=1
 
 
@@ -285,11 +307,12 @@ class Bats:
 	def UpdateInPop(self,neighbor,child):
 		child_pos=nx.get_node_attributes(child,'pos')
 		nx.set_node_attributes(self.bats[neighbor],'pos',child_pos)
+		#self.G=self.bats[neighbor].copy()
 
 
 	def update_neighborhood_solution(self,ns,child):
 		for i in ns:
-			point = [self.zstr1,self.zstr2]
+			point = [self.zstr1['KKM'],self.zstr2['RC']]
 			fun = [self.KKM(self.bats[i]),self.RC(self.bats[i])]
 			weight = nx.get_node_attributes(self.bats[i],'weight')[1]
 			f1 = self.scalar_func(point,fun,weight)
@@ -338,19 +361,22 @@ class Bats:
 		self.G=temp_graph.copy()
 
 
-	def Z1dZ2d(self,child):
-		self.Z1d=self.KKM(child)
-		self.Z2d=self.RC(child)
+	def draw(self):
+		bats=list((set(self.bats)))		
+		M = [self.KKM(i) for i in bats]
+		N = [self.RC(i) for i in bats]
+		F = [self.fitness(i) for i in bats]
+		print(F)
+		ind = F.index(max(F))
 
+		print("\nFitness : ",self.fitness(bats[ind]))
+		print("\nNumber of Communites : ",len(set([bats[ind].node[i]['pos'] for i in bats[ind]])))
+		print("\nGlobal Best Position : ",[bats[ind].node[i]['pos'] for i in bats[ind]])
 
-	def draw(self):	
-		pf=list((set(self.bats)))		
-		M = [self.KKM(i) for i in pf]
-		N = [self.RC(i) for i in pf]
-		F = [self.fitness(i) for i in pf]
 		p1=M
 		p1_min = min(M)
 		p1_max = max(M)
+
 		p2=N
 		p2_min = min(N)
 		p2_max = max(N)
@@ -361,12 +387,13 @@ class Bats:
 			l.append(round(float((p2[i]-p2_min))/float((p2_max - p2_min)),5))
 		fig, ax = plt.subplots()
 		plt.figure(1)
-		ax.scatter(h, l)
+		ax.scatter(M, N)
 		for i, txt in enumerate(F):
-		    ax.annotate(txt, (h[i],l[i]))
+		    ax.annotate(txt, (M[i],N[i]))
 		plt.figure(2)
-		nx.draw(self.G,node_color=[self.G.node[i]['pos'] for i in self.G])
+		nx.draw(bats[ind],node_color=[bats[ind].node[i]['pos'] for i in bats[ind]])
 		plt.show()
+
 
 	def eq_4(self,g,gbest):
 		#new_graph=graph
@@ -388,23 +415,23 @@ class Bats:
 #			if(c>np.mean(self.A))
 		return graph
 
-	def increase_r(self,itr):
+	def increase_r(self,index):
 		#if(itr==0):
 		r0=0.5
 		#else:
 		#1	r0=self.R
 		gama=0.03
-		x=round(float(1-round(np.exp(-gama*itr),2)),2)
+		x=round(float(1-round(np.exp(-gama*index),2)),2)
 		x1=r0*x
 		x2=round(float(x1),2)
-		self.R=x2
+		self.R[index]=x2
 		
 
-	def decrease_a(self):
+	def decrease_a(self,index):
 		alpha=0.98
-		a=self.A * alpha
+		a=self.A[index] * alpha
 		a1=round(float(a),2)
-		self.A=a1
+		self.A[index]=a1
 
 	def optimize(self):
 		self.__init__()
@@ -412,10 +439,7 @@ class Bats:
 		self.Input_Graph()
 		self.bats_init()
 		t=self.G.number_of_nodes()
-		vel=[]
-		for ll in range(t):
-			vel.append(0)
-		self.velocity=vel
+		self.velocity = [0]*self.G.number_of_nodes() # put 0 in velocity t(number of nodes) times
 		self.weight_init()
 		self.pbest_init()
 		self.z_reference()
@@ -425,53 +449,33 @@ class Bats:
 			print("iteration : ",(i+1))
 			index=0
 			for p in self.bats:
-				#nbrs=nx.get_node_attributes(p,'n_distance')[1]
 				nbrs = self.nbrs[index]
-				#print(nbrs)
-				#gbst=nbrs[np.random.randint(len(nbrs))]
 				gbst = np.random.choice(nbrs)
-
-				#print("gbest ",gbst)
-				#print("p",p.node[1]['pos'])
 				self.updatevelocity(p,gbst)
 				child=self.updatepos(p)
-				#print("c",child.node[1]['pos'])
-				#if(child==p):
-				#	print True
-				if(round(np.random.uniform(0,1),2)>self.R):
+				if(round(np.random.uniform(0,1),2)>self.R[index]):
 					child=self.eq_4(p,gbst) #equation 9 in your docx paper
 
 				if(i<self.iteration*self.pm):
 					self.turbulance_operation(child)
 				
 				self.Z1dZ2d(child)
-				#self.update_neighborhood_solution(p,child)
-
 
 				rd=round(np.random.uniform(0,1),2)
 
 				fi = round(self.fitness(p),3)
 				fnew = round(self.fitness(child),3)
 
-				#print(rd,fi,fnew)
-
-				if(rd<self.A and fi<fnew):
+				if(rd<self.A[index] and fi<fnew):
 					p=child	# accept new solution in full population
+					self.G=child.copy()
 					self.increase_r(i) # increase pulse emission rate
-					self.decrease_a() # decrease loudness
+					self.decrease_a(i) # decrease loudness
 					
-				#ns=nx.get_node_attributes(p,'n_distance')[1]
 				self.update_neighborhood_solution(nbrs,child)
 				self.update_reference_point()
 				self.update_pbest(p,child)
-
-			print(self.fitness(self.G))
-			print(len(set([self.G.node[i]['pos'] for i in self.G])))
-		print("\n\n**********************************************************")	
-		print('\nThe script take {0} second '.format(np.round((time.time() - startTime),2)))
-		print("\nFitness : ",self.fitness(self.G))
-		print("\nNumber of Communites : ",len(set([self.G.node[i]['pos'] for i in self.G])))
-		print("\nGlobal Best Position : ",[self.G.node[i]['pos'] for i in self.G])
+				index += 1
 
 		self.draw()
 if __name__=='__main__':
